@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:snowflake="http://www.mulesoft.org/schema/mule/snowflake" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/snowflake http://www.mulesoft.org/schema/mule/snowflake/current/mule-snowflake.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+    <http:listener-config name="uhub-sapi-httpListenerConfig">
+        <http:listener-connection host="${http.host}" port="${http.port}" />
+    </http:listener-config>
+    <apikit:config name="uhub-sapi-config" api="resource::5c0615ed-bced-425a-8087-a1c6e0088dba:uhub-sapi:1.0.1:raml:zip:uhub-sapi.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <configuration doc:name="Configuration" doc:id="ccd4ddd1-0ced-4f91-b791-dedf77da5e54" defaultErrorHandler-ref="global-error-handlerError_Handler" />
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="bd944913-ec26-40a6-8056-6f31372e3461" >
+		<salesforce:basic-connection username="${sfdc.userName}" password="${sfdc.password}" securityToken="${secure::sfdc.token}" />
+	</salesforce:sfdc-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="66944bf7-5a4f-4a12-a0de-b80150af1bf5" file="propeties\local.yaml" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="7bb82cf8-27a1-4272-ab29-2346c3fa8ee1" file="secure.yaml" key="CoustmerModule12" />
+	<api-gateway:autodiscovery apiId="19460731" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="5f792662-8236-4321-bf84-840aa1a32965" flowRef="uhub-sapi-main" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="4d4b6c31-f9f7-4bea-a854-99da89c4ec2e" >
+		<db:my-sql-connection host="localhost" port="3306" user="root" password="Gani@7036" database="uhubsapi" />
+	</db:config>
+	<flow name="uhub-sapi-main">
+        <http:listener config-ref="uhub-sapi-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <ee:transform doc:name="Transform Message" doc:id="56df3029-470c-45a1-8574-a76c2f489d74" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="requestPayload" ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-variable>
+				<ee:set-variable variableName="requestHeader" ><![CDATA[%dw 2.0
+output application/json
+---
+attributes.headers]]></ee:set-variable>
+				<ee:set-variable variableName="requestUriParams" ><![CDATA[%dw 2.0
+output application/json
+---
+attributes.uriParams."nationalId"]]></ee:set-variable>
+				<ee:set-variable variableName="requestQueryParams" ><![CDATA[%dw 2.0
+output application/json
+---
+attributes.queryParams]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<apikit:router config-ref="uhub-sapi-config" />
+		<error-handler ref="global-error-handlerError_Handler" />
+    </flow>
+    <flow name="put:\covid:application\json:uhub-sapi-config">
+		<logger level="INFO" doc:name="Request" doc:id="a59ac9fb-4512-4f9c-8817-a890bb527dc7" message='Request recived for transactionId: #[attributes.headers."x-transactionId"]' />
+		<flow-ref doc:name="Flow Reference" doc:id="e0bf4060-e672-459a-842b-27cc56e53bed" name="update-covid-caseFlow"/>
+		<logger level="INFO" doc:name="Response" doc:id="285af152-9683-4c41-8c39-8ffbe7dc8d08" message='Response recived for correlationId: #[attributes.headers."x-transactionId"]' />
+    </flow>
+    <flow name="get:\covid\reports:uhub-sapi-config">
+		<logger level="INFO" doc:name="Request" doc:id="3d57fec0-9a4c-4958-81d9-86a41005a96c" message='Request recived for transactionId: #[attributes.headers."x-transactionId"]' />
+		<flow-ref doc:name="Flow Reference" doc:id="7529ad3e-02b2-4afa-b054-c4cb26126ca6" name="get-covid-reportsFlow"/>
+		<logger level="INFO" doc:name="Response" doc:id="51e13316-5e21-4869-9cd7-9b7432713d46" message='Response recived for correlationId: #[attributes.headers."x-transactionId"]' />
+    </flow>
+    <flow name="get:\covid\(nationalId):uhub-sapi-config">
+		<logger level="INFO" doc:name="Request" doc:id="8bf2005e-7fcc-40fe-afa2-5f7ff96f35d5" message='Request recived for transactionId: #[attributes.headers."x-transactionId"]' />
+		<flow-ref doc:name="Flow Reference" doc:id="b08d7bd5-0ed6-4ca1-a585-b05e954a031f" name="get-covidListBy-nationalIdFlow"/>
+		<logger level="INFO" doc:name="Response" doc:id="6a3e8f16-0214-40da-9a20-747089f8795a" message='Response recived for correlationId: #[attributes.headers."x-transactionId"]' />
+    </flow>
+    <flow name="post:\covid:application\json:uhub-sapi-config">
+        <logger level="INFO" doc:name="Request" doc:id="2abdd53b-06d7-4c37-957e-72b5294cdc60" message='Request recived for transactionId: #[attributes.headers."x-transactionId"]' />
+		<flow-ref doc:name="Flow Reference" doc:id="bec70420-7842-4e4e-891f-7517f53b52fe" name="register-covid-caseFlow"/>
+		<logger level="INFO" doc:name="Response" doc:id="a2a7d6d8-58da-44c0-a325-657e4aad67b3" message='Response recived for correlationId: #[attributes.headers."x-transactionId"]' />
+    </flow>
+</mule>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="get-covidListBy-nationalIdFlow" doc:id="b4cb444c-065e-40ea-a2a1-c5e92fb23399" >
+		<salesforce:query doc:name="Query" doc:id="3202a380-d7e8-46ca-98a5-0c9f3918d8e9" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select Name,source__c,caseType__c,firstName__c,lastName__c,phone__c,email__c,dateOfBirth__c,nationalId__c,nationalIdType__c,streetAddress__c,city__c,state__c,postal__c,country__c from caseId__c where nationalId__c = ':nationalId']]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[{
+	"nationalId": attributes.uriParams.nationalId
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="55d3132b-bdc5-44fa-b4c1-08dc4742fe28" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ((item, index) -> {
+	"source": item.source__c,
+	"caseType": item.caseType__c,
+	"firstName": item.firstName__c,
+	"lastName": item.lastName__c,
+	address: {
+		country: item.country__c default "",
+		streetAddress: item.streetAddress__c default "",
+		city: item.city__c default "",
+		state: item.state__c default "",
+		postal: item.nationalId__c default ""
+	},
+	"phone": item.phone__c,
+	"email": item.email__c,
+	"dateOfBirth": item.dateOfBirth__c,
+	"nationalId": item.nationalId__c,
+	"nationalIdType": item.nationalIdType__c,
+	
+} )]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

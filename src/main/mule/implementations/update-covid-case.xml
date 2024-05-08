@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="update-covid-caseFlow" doc:id="615dac3b-d0dd-41aa-94d2-0cc1e3f75660" >
+		<ee:transform doc:name="Transform Message" doc:id="400ccff1-31fd-463e-b8f5-bb1d82e4b90c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[{
+	Name: payload.caseId,
+	source__c: payload.source,
+	caseType__c: payload.caseType,
+	firstName__c: payload.firstName,
+	lastName__c: payload.lastName,
+	phone__c: payload.phone,
+	email__c: payload.email,
+	dateOfBirth__c: payload.dateOfBirth,
+	nationalId__c: payload.nationalId,
+	nationalIdType__c: payload.nationalIdType,
+	streetAddress__c: payload.address.streetAddress,
+	city__c: payload.address.city,
+	state__c: payload.address.state,
+	postal__c: payload.address.postal,
+	country__c: payload.address.country
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:upsert doc:name="Upsert" doc:id="d35d5078-f83c-4bd8-8816-11084a5957f4" config-ref="Salesforce_Config" objectType="caseId__c" externalIdFieldName="Name"/>
+		<ee:transform doc:name="Transform Message" doc:id="23769efb-a589-4207-ad67-b6f7e3d2aa9a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  caseId: payload.items.id
+} ]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

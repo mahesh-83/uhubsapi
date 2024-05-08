@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="get-covid-reportsFlow" doc:id="d66d3729-0994-4f9a-b8c1-401da32de996" >
+		<salesforce:query doc:name="Query" doc:id="4ecaafd1-7294-474e-a139-1212a3afd00a" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select Name,source__c,caseType__c,firstName__c,lastName__c,phone__c,email__c,dateOfBirth__c,nationalId__c,nationalIdType__c,streetAddress__c,city__c,state__c,postal__c,country__c from caseId__c where state__c = ':state']]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[{
+	"state": attributes.queryParams.state
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="0870f37d-1db9-4b13-ac79-e4f05a8934bf" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	report: {
+	"total": payload.report.total  default "11",
+    "positive": payload.report.positive  default "101",
+    "recovered": payload.report.recovered  default "50",
+    "death": payload.report.death  default "40",
+    "vaccinated": payload.report.vaccinated  default "80"
+	},
+	state: payload01.state__c default ""
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

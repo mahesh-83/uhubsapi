@@ -1,0 +1,5 @@
+%dw 2.0
+
+type auto_d66d3729_0994_4f9a_b8c1_401da32de996_Input_Payload = Array<{|  state: String,   report: {|    total: Number,     positive: Number,     recovered: Number,     death: Number,     vaccinated: Number  |}|}> {"mediaType": "application/json",
+"encoding": "UTF-8"}
+
